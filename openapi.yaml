@@ -1,0 +1,2557 @@
+openapi: 3.0.3
+info:
+  title: Whetmark
+  version: 0.1.0
+  description: >-
+    Capability-currency register for safety-critical and technical workforces.
+    Every recorded skill carries an expiry clock derived from a published decay
+    basis, currency is evidenced by recent practice rather than by training
+    completion, deployability is forecast in fillable shifts, and every decision
+    that restricts a person's work carries reasons, an appeal route and an
+    adverse-impact test.
+  x-product-slug: ai-hr-whetmark
+  x-source: ai-in-hr/deloitte-joshBersin_Conference-congres2017/
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Capabilities
+    description: Capability architecture, standards, authorisation scope, and versioned decay bases
+  - name: Currency
+    description: Per-person capability holdings, currency state, and expiry clocks
+  - name: Evidence
+    description: Practice evidence ingested from work management, permit, and training systems
+  - name: Assessment
+    description: Assessments, reassessment bookings, and assessor capacity
+  - name: Deployability
+    description: Forecast of deployable competent people against rostered demand
+  - name: Learning
+    description: Point-of-need help, structured programmes, and time-to-proficiency
+  - name: Overrides
+    description: Time-boxed deployment overrides and compensating controls
+  - name: Contractors
+    description: Boundary attestation and verification for supplier and agency personnel
+  - name: Fairness
+    description: Determinations, appeals, and adverse impact review
+  - name: Governance
+    description: Consultation records, evidence packs, and portable capability records
+paths:
+  /v1/capabilities:
+    get:
+      operationId: listCapabilityDefinitions
+      summary: List capability definitions
+      tags: [Capabilities]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: criticality
+          in: query
+          schema:
+            type: string
+            enum: [statutory_authorisation, safety_critical, revenue_critical, standard]
+        - name: location
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Capability definitions page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeCapabilityDefinition"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createCapabilityDefinition
+      summary: Create a capability definition
+      tags: [Capabilities]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CapabilityDefinitionCreate"
+      responses:
+        "201":
+          description: Capability definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeCapabilityDefinition"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/capabilities/{capabilityId}:
+    parameters:
+      - $ref: "#/components/parameters/CapabilityId"
+    get:
+      operationId: getCapabilityDefinition
+      summary: Get a capability definition with its standard and current decay basis
+      tags: [Capabilities]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Capability definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeCapabilityDefinition"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/capabilities/{capabilityId}/decay-basis:
+    parameters:
+      - $ref: "#/components/parameters/CapabilityId"
+    post:
+      operationId: publishDecayBasis
+      summary: Publish a new version of the decay basis for a capability
+      description: >-
+        Creates an immutable new version. Where the change affects pay, grade or
+        shift eligibility the request must reference a discharged consultation
+        record or the platform rejects it.
+      tags: [Capabilities]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecayBasisCreate"
+      responses:
+        "201":
+          description: Decay basis version published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDecayBasis"
+        "409":
+          description: Consultation obligation not discharged for a pay-affecting change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/capabilities/{capabilityId}/decay-basis/history:
+    parameters:
+      - $ref: "#/components/parameters/CapabilityId"
+    get:
+      operationId: listDecayBasisVersions
+      summary: List the immutable version history of a capability decay basis
+      tags: [Capabilities]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Decay basis versions page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeDecayBasis"
+  /v1/people/{personId}/capability-holdings:
+    parameters:
+      - $ref: "#/components/parameters/PersonId"
+    get:
+      operationId: listCapabilityHoldings
+      summary: List a person's capability holdings and currency states
+      tags: [Currency]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: currencyState
+          in: query
+          schema:
+            $ref: "#/components/schemas/CurrencyState"
+      responses:
+        "200":
+          description: Capability holdings page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeCapabilityHolding"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /v1/capability-holdings/{holdingId}:
+    parameters:
+      - $ref: "#/components/parameters/HoldingId"
+    get:
+      operationId: getCapabilityHolding
+      summary: Get a capability holding with its evidence trail and expiry clock
+      tags: [Currency]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Capability holding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeCapabilityHolding"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/capability-holdings/{holdingId}/suspension:
+    parameters:
+      - $ref: "#/components/parameters/HoldingId"
+    post:
+      operationId: suspendCapabilityHolding
+      summary: Suspend a capability holding pending review
+      description: >-
+        Used after an incident, an occupational health determination, or a failed
+        verification. Suspension serves a determination with reasons and opens the
+        appeal window.
+      tags: [Currency]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, reasonCategory, decidedBy]
+              properties:
+                reason:
+                  type: string
+                reasonCategory:
+                  type: string
+                  enum: [incident_review, fitness_for_work, failed_verification, standard_withdrawn]
+                decidedBy:
+                  type: string
+                  description: Named accountable decision-maker
+                reviewBy:
+                  type: string
+                  format: date
+      responses:
+        "202":
+          description: Suspension applied and determination served
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDetermination"
+  /v1/currency/expiring:
+    get:
+      operationId: listExpiringCurrency
+      summary: List currency alerts for holdings approaching or past expiry
+      tags: [Currency]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: withinDays
+          in: query
+          schema:
+            type: integer
+            default: 90
+      responses:
+        "200":
+          description: Currency alerts page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeCurrencyAlert"
+  /v1/practice-evidence:
+    get:
+      operationId: listPracticeEvidence
+      summary: List practice evidence with provenance
+      tags: [Evidence]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: personId
+          in: query
+          schema:
+            type: string
+        - name: capabilityId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Practice evidence page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopePracticeEvidence"
+    post:
+      operationId: recordPracticeEvidence
+      summary: Record practice evidence from a system of record
+      description: >-
+        Server-to-server ingestion from work management, permit-to-work, or
+        training delivery. Evidence must cite the originating work record so the
+        currency clock is traceable to work the person already knows is logged.
+      tags: [Evidence]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PracticeEvidenceCreate"
+      responses:
+        "201":
+          description: Evidence recorded and currency clock updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopePracticeEvidence"
+        "409":
+          description: Duplicate source record already ingested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/assessments:
+    get:
+      operationId: listAssessments
+      summary: List assessments
+      tags: [Assessment]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [competent, not_yet_competent, declined, abandoned]
+      responses:
+        "200":
+          description: Assessments page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeAssessment"
+    post:
+      operationId: recordAssessment
+      summary: Record an assessment outcome against a published standard
+      tags: [Assessment]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentCreate"
+      responses:
+        "201":
+          description: Assessment recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAssessment"
+        "409":
+          description: Assessor is not qualified in this capability or not independent of the candidate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/assessments/{assessmentId}/declination:
+    parameters:
+      - $ref: "#/components/parameters/AssessmentId"
+    post:
+      operationId: declineAssessment
+      summary: Decline an assigned assessment on qualification or independence grounds
+      tags: [Assessment]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ground]
+              properties:
+                ground:
+                  type: string
+                  enum: [not_qualified_in_capability, insufficient_independence, conflict_of_interest, capacity]
+                note:
+                  type: string
+      responses:
+        "200":
+          description: Assessment declined and returned to the scheduling pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAssessment"
+  /v1/reassessment-bookings:
+    get:
+      operationId: listReassessmentBookings
+      summary: List reassessment bookings against assessor capacity
+      tags: [Assessment]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Reassessment bookings page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeReassessmentBooking"
+    post:
+      operationId: bookReassessment
+      summary: Book a reassessment, self-service or scheduled
+      tags: [Assessment]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReassessmentBookingCreate"
+      responses:
+        "201":
+          description: Reassessment booked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeReassessmentBooking"
+        "409":
+          description: No qualified independent assessor capacity inside the service target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/assessors/{assessorId}/worklist:
+    parameters:
+      - $ref: "#/components/parameters/AssessorId"
+    get:
+      operationId: getAssessorWorklist
+      summary: Get an assessor worklist ordered by operational exposure
+      tags: [Assessment]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Assessor worklist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeAssessmentTask"
+  /v1/deployability/forecast:
+    get:
+      operationId: getDeployabilityForecast
+      summary: Forecast deployable competent people and unfillable shifts
+      tags: [Deployability]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: location
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: fromDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: capabilityId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deployability forecast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDeployabilityForecast"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/deployability/unlock-ranking:
+    get:
+      operationId: getReassessmentUnlockRanking
+      summary: Rank candidate reassessments by the shifts each would unlock
+      tags: [Deployability]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: location
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Unlock ranking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeUnlockRanking"
+  /v1/roster-demand:
+    get:
+      operationId: listRosterDemand
+      summary: List rostered demand by capability and location
+      tags: [Deployability]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: location
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Roster demand page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeRosterDemand"
+  /v1/help-requests:
+    post:
+      operationId: submitHelpRequest
+      summary: Ask a point-of-work question and get a short answer or a programme route
+      tags: [Learning]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HelpRequestCreate"
+      responses:
+        "200":
+          description: Help response with resolution mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeHelpRequest"
+  /v1/help-requests/recurring:
+    get:
+      operationId: listRecurringHelpTopics
+      summary: List recurring point-of-work questions indicating process or design defects
+      tags: [Learning]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: minOccurrences
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Recurring help topics page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeRecurringHelpTopic"
+  /v1/learning-assets:
+    get:
+      operationId: listLearningAssets
+      summary: List learning assets by pace and proficiency stage
+      tags: [Learning]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: pace
+          in: query
+          schema:
+            type: string
+            enum: [micro, macro]
+        - name: proficiencyStage
+          in: query
+          schema:
+            $ref: "#/components/schemas/ProficiencyStage"
+      responses:
+        "200":
+          description: Learning assets page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeLearningAsset"
+  /v1/proficiency-journeys:
+    get:
+      operationId: listProficiencyJourneys
+      summary: List time-to-proficiency journeys by entry route
+      tags: [Learning]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: entryRoute
+          in: query
+          schema:
+            $ref: "#/components/schemas/EntryRoute"
+        - name: capabilityId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proficiency journeys page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeProficiencyJourney"
+  /v1/overrides:
+    get:
+      operationId: listDeploymentOverrides
+      summary: List deployment overrides carried as standing risk
+      tags: [Overrides]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, expired, closed, escalated]
+      responses:
+        "200":
+          description: Overrides page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeDeploymentOverride"
+    post:
+      operationId: authoriseDeploymentOverride
+      summary: Authorise a time-boxed deployment override with compensating controls
+      tags: [Overrides]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeploymentOverrideCreate"
+      responses:
+        "201":
+          description: Override authorised and raised to the operational risk register
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDeploymentOverride"
+        "403":
+          description: Requesting manager does not hold override authority for this capability class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/overrides/{overrideId}/closure:
+    parameters:
+      - $ref: "#/components/parameters/OverrideId"
+    post:
+      operationId: closeDeploymentOverride
+      summary: Close an override once currency is restored or the work is withdrawn
+      tags: [Overrides]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [closureReason]
+              properties:
+                closureReason:
+                  type: string
+                  enum: [currency_restored, work_withdrawn, reassigned, expired_unused]
+                note:
+                  type: string
+      responses:
+        "200":
+          description: Override closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDeploymentOverride"
+  /v1/contractor-attestations:
+    get:
+      operationId: listContractorAttestations
+      summary: List contractor capability attestations and their verification status
+      tags: [Contractors]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: verificationStatus
+          in: query
+          schema:
+            type: string
+            enum: [submitted, verified, rejected, expired]
+      responses:
+        "200":
+          description: Contractor attestations page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeContractorAttestation"
+    post:
+      operationId: submitContractorAttestation
+      summary: Submit a supplier attestation of a contractor person's capability
+      tags: [Contractors]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractorAttestationCreate"
+      responses:
+        "201":
+          description: Attestation submitted for verification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeContractorAttestation"
+  /v1/contractor-attestations/{attestationId}/verification:
+    parameters:
+      - $ref: "#/components/parameters/AttestationId"
+    post:
+      operationId: verifyContractorAttestation
+      summary: Verify a contractor attestation against the issuing body
+      tags: [Contractors]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome, verifiedAgainst]
+              properties:
+                outcome:
+                  type: string
+                  enum: [verified, rejected, unverifiable]
+                verifiedAgainst:
+                  type: string
+                  description: Issuing or awarding body reference
+                note:
+                  type: string
+      responses:
+        "200":
+          description: Verification recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeContractorAttestation"
+  /v1/determinations/{determinationId}:
+    parameters:
+      - $ref: "#/components/parameters/DeterminationId"
+    get:
+      operationId: getDetermination
+      summary: Get a written determination with the evidence relied on
+      tags: [Fairness]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Determination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDetermination"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/determinations/{determinationId}/appeals:
+    parameters:
+      - $ref: "#/components/parameters/DeterminationId"
+    post:
+      operationId: openAppeal
+      summary: Contest a determination, citing practice the evidence feed missed
+      tags: [Fairness]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppealCreate"
+      responses:
+        "201":
+          description: Appeal opened with a decision deadline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAppeal"
+        "409":
+          description: Appeal window for this determination has closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/appeals/{appealId}/decision:
+    parameters:
+      - $ref: "#/components/parameters/AppealId"
+    post:
+      operationId: decideAppeal
+      summary: Decide an appeal by an independent reviewer
+      tags: [Fairness]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome, rationale, decidedBy]
+              properties:
+                outcome:
+                  type: string
+                  enum: [upheld, rejected, partially_upheld, remitted_for_reassessment]
+                rationale:
+                  type: string
+                decidedBy:
+                  type: string
+                evidenceAccepted:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Appeal decided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAppeal"
+  /v1/fairness/adverse-impact-reviews:
+    get:
+      operationId: listAdverseImpactReviews
+      summary: List adverse impact reviews of assessment and lapse rates
+      tags: [Fairness]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: period
+          in: query
+          schema:
+            type: string
+            example: 2026-H1
+      responses:
+        "200":
+          description: Adverse impact reviews page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeAdverseImpactReview"
+    post:
+      operationId: publishAdverseImpactReview
+      summary: Publish an adverse impact review with remediation decisions
+      tags: [Fairness]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdverseImpactReviewCreate"
+      responses:
+        "201":
+          description: Review published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAdverseImpactReview"
+  /v1/governance/consultation-records:
+    get:
+      operationId: listConsultationRecords
+      summary: List consultation records bound to rule versions
+      tags: [Governance]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Consultation records page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeConsultationRecord"
+    post:
+      operationId: recordConsultation
+      summary: Record discharge of a consultation obligation
+      tags: [Governance]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsultationRecordCreate"
+      responses:
+        "201":
+          description: Consultation record created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeConsultationRecord"
+  /v1/governance/evidence-packs:
+    post:
+      operationId: assembleEvidencePack
+      summary: Assemble a regulator or tribunal evidence pack for one person and decision
+      tags: [Governance]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [personId, purpose]
+              properties:
+                personId:
+                  type: string
+                capabilityId:
+                  type: string
+                determinationId:
+                  type: string
+                asOfDate:
+                  type: string
+                  format: date
+                purpose:
+                  type: string
+                  enum: [regulator_request, tribunal, incident_investigation, internal_audit]
+      responses:
+        "202":
+          description: Evidence pack assembled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeEvidencePack"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /v1/people/{personId}/portable-record:
+    parameters:
+      - $ref: "#/components/parameters/PersonId"
+    get:
+      operationId: getPortableCapabilityRecord
+      summary: Issue an individual-held verifiable record of capabilities on exit or transfer
+      tags: [Governance]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Portable capability record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopePortableCapabilityRecord"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    CapabilityId:
+      name: capabilityId
+      in: path
+      required: true
+      schema:
+        type: string
+    PersonId:
+      name: personId
+      in: path
+      required: true
+      schema:
+        type: string
+    HoldingId:
+      name: holdingId
+      in: path
+      required: true
+      schema:
+        type: string
+    AssessmentId:
+      name: assessmentId
+      in: path
+      required: true
+      schema:
+        type: string
+    AssessorId:
+      name: assessorId
+      in: path
+      required: true
+      schema:
+        type: string
+    OverrideId:
+      name: overrideId
+      in: path
+      required: true
+      schema:
+        type: string
+    AttestationId:
+      name: attestationId
+      in: path
+      required: true
+      schema:
+        type: string
+    DeterminationId:
+      name: determinationId
+      in: path
+      required: true
+      schema:
+        type: string
+    AppealId:
+      name: appealId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: Caller lacks the role required for this capability class or data tier
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnprocessableEntity:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp]
+      properties:
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: GBP
+    CurrencyState:
+      type: string
+      enum: [current, expiring, lapsed, suspended, never_held]
+    ProficiencyStage:
+      type: string
+      enum: [new_on_the_job, working_under_supervision, independent, seasoned, expert, coach]
+    EntryRoute:
+      type: string
+      enum: [new_hire, internal_move, returner, contractor, apprentice]
+    CapabilityCriticality:
+      type: string
+      enum: [statutory_authorisation, safety_critical, revenue_critical, standard]
+    Person:
+      type: object
+      required: [id, employmentType]
+      properties:
+        id:
+          type: string
+        payrollReference:
+          type: string
+        employmentType:
+          type: string
+          enum: [employee, contractor, agency, apprentice]
+        primaryLocation:
+          type: string
+        workingPattern:
+          type: string
+          enum: [full_time, part_time, annualised, bank, phased_retirement]
+        grade:
+          type: string
+    ContractorPerson:
+      type: object
+      required: [id, supplierId]
+      properties:
+        id:
+          type: string
+        supplierId:
+          type: string
+        supplierName:
+          type: string
+        engagementReference:
+          type: string
+        boundaryVerifiedAt:
+          type: string
+          format: date-time
+    CapabilityStandard:
+      type: object
+      required: [statement]
+      properties:
+        statement:
+          type: string
+          description: The performance standard a person must demonstrate
+        acceptableEvidenceTypes:
+          type: array
+          items:
+            type: string
+            enum: [completed_work_order, discharged_permit, observed_assessment, simulator_session, written_test, awarding_body_certificate]
+        minimumEvidenceCount:
+          type: integer
+        assessorQualificationRequired:
+          type: string
+        independenceRule:
+          type: string
+          description: Who may not assess whom, for example line manager of the candidate
+    AuthorisationScope:
+      type: object
+      properties:
+        assetClasses:
+          type: array
+          items:
+            type: string
+        voltageOrPressureLimit:
+          type: string
+        permitTypes:
+          type: array
+          items:
+            type: string
+        locations:
+          type: array
+          items:
+            type: string
+        legalBasis:
+          type: string
+          description: Statute, licence condition, or safety rule conferring the authorisation
+    DecayBasis:
+      type: object
+      required: [id, capabilityId, version, baseValidityMonths, status]
+      properties:
+        id:
+          type: string
+        capabilityId:
+          type: string
+        version:
+          type: integer
+        baseValidityMonths:
+          type: integer
+          description: Maximum interval before reassessment regardless of practice
+        nonPracticeLapseMonths:
+          type: integer
+          description: Interval of no qualifying practice after which currency lapses early
+        practiceExtensionMonths:
+          type: integer
+          description: Extension granted per qualifying practice event
+        rationale:
+          type: string
+        authoredBy:
+          type: string
+        affectsPayOrRoster:
+          type: boolean
+        consultationRecordId:
+          type: string
+        status:
+          type: string
+          enum: [draft, consulting, published, superseded]
+        publishedAt:
+          type: string
+          format: date-time
+    DecayBasisCreate:
+      type: object
+      required: [baseValidityMonths, rationale]
+      properties:
+        baseValidityMonths:
+          type: integer
+        nonPracticeLapseMonths:
+          type: integer
+        practiceExtensionMonths:
+          type: integer
+        rationale:
+          type: string
+        affectsPayOrRoster:
+          type: boolean
+        consultationRecordId:
+          type: string
+    CapabilityDefinition:
+      type: object
+      required: [id, code, name, criticality]
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        criticality:
+          $ref: "#/components/schemas/CapabilityCriticality"
+        owner:
+          type: string
+          description: Accountable capability owner
+        standard:
+          $ref: "#/components/schemas/CapabilityStandard"
+        authorisationScope:
+          $ref: "#/components/schemas/AuthorisationScope"
+        currentDecayBasis:
+          $ref: "#/components/schemas/DecayBasis"
+        awardingBody:
+          type: string
+        gatesPermitIssue:
+          type: boolean
+    CapabilityDefinitionCreate:
+      type: object
+      required: [code, name, criticality, standard]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        criticality:
+          $ref: "#/components/schemas/CapabilityCriticality"
+        owner:
+          type: string
+        standard:
+          $ref: "#/components/schemas/CapabilityStandard"
+        authorisationScope:
+          $ref: "#/components/schemas/AuthorisationScope"
+        awardingBody:
+          type: string
+        gatesPermitIssue:
+          type: boolean
+    CapabilityHolding:
+      type: object
+      required: [id, personId, capabilityId, currencyState]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        currencyState:
+          $ref: "#/components/schemas/CurrencyState"
+        grantedAt:
+          type: string
+          format: date-time
+        grantedByAssessmentId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        lastQualifyingPracticeAt:
+          type: string
+          format: date-time
+        qualifyingPracticeCount:
+          type: integer
+        decayBasisVersion:
+          type: integer
+        proficiencyStage:
+          $ref: "#/components/schemas/ProficiencyStage"
+        evidenceBackedNotCompletionBacked:
+          type: boolean
+          description: True where currency rests on practice or assessment rather than on training completion alone
+        activeDeterminationId:
+          type: string
+    CurrencyAlert:
+      type: object
+      required: [holdingId, personId, capabilityId, currencyState]
+      properties:
+        holdingId:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        currencyState:
+          $ref: "#/components/schemas/CurrencyState"
+        expiresAt:
+          type: string
+          format: date-time
+        daysToExpiry:
+          type: integer
+        location:
+          type: string
+        shiftsAtRisk:
+          type: integer
+        reassessmentBookingId:
+          type: string
+    PracticeEvidence:
+      type: object
+      required: [id, personId, capabilityId, evidenceType, occurredAt, sourceSystem]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        evidenceType:
+          type: string
+          enum: [completed_work_order, discharged_permit, observed_assessment, simulator_session, written_test, awarding_body_certificate]
+        occurredAt:
+          type: string
+          format: date-time
+        sourceSystem:
+          type: string
+          enum: [work_management, permit_to_work, learning_platform, awarding_body, vendor_management, manual_entry]
+        sourceRecordReference:
+          type: string
+          description: Originating work record, so the clock is traceable to logged work
+        qualifying:
+          type: boolean
+        qualifyingRationale:
+          type: string
+        currencyExtendedToAt:
+          type: string
+          format: date-time
+    PracticeEvidenceCreate:
+      type: object
+      required: [personId, capabilityId, evidenceType, occurredAt, sourceSystem, sourceRecordReference]
+      properties:
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        evidenceType:
+          type: string
+          enum: [completed_work_order, discharged_permit, observed_assessment, simulator_session, written_test, awarding_body_certificate]
+        occurredAt:
+          type: string
+          format: date-time
+        sourceSystem:
+          type: string
+          enum: [work_management, permit_to_work, learning_platform, awarding_body, vendor_management, manual_entry]
+        sourceRecordReference:
+          type: string
+        workType:
+          type: string
+    Assessor:
+      type: object
+      required: [id, personId]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        qualifiedCapabilityIds:
+          type: array
+          items:
+            type: string
+        verifierLevel:
+          type: string
+          enum: [assessor, internal_verifier, external_verifier]
+        weeklyCapacityHours:
+          type: number
+          format: float
+        location:
+          type: string
+    Assessment:
+      type: object
+      required: [id, personId, capabilityId, outcome]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        assessorId:
+          type: string
+        standardVersion:
+          type: integer
+        outcome:
+          type: string
+          enum: [competent, not_yet_competent, declined, abandoned]
+        assessedAt:
+          type: string
+          format: date-time
+        method:
+          type: string
+          enum: [workplace_observation, simulator, oral_questioning, written_test, portfolio_review]
+        observationNoteRetentionUntil:
+          type: string
+          format: date
+          description: Shorter clock than the structured outcome, as judgemental third-party content
+        independenceConfirmed:
+          type: boolean
+        declinationGround:
+          type: string
+    AssessmentCreate:
+      type: object
+      required: [personId, capabilityId, assessorId, outcome, method]
+      properties:
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        assessorId:
+          type: string
+        outcome:
+          type: string
+          enum: [competent, not_yet_competent]
+        method:
+          type: string
+          enum: [workplace_observation, simulator, oral_questioning, written_test, portfolio_review]
+        observationNote:
+          type: string
+        independenceConfirmed:
+          type: boolean
+    AssessmentTask:
+      type: object
+      required: [holdingId, personId, capabilityId]
+      properties:
+        holdingId:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        currencyState:
+          $ref: "#/components/schemas/CurrencyState"
+        operationalExposureScore:
+          type: number
+          format: float
+          description: Ranking signal based on shifts blocked, not on expiry date order
+        shiftsBlocked:
+          type: integer
+        location:
+          type: string
+        dueBy:
+          type: string
+          format: date
+    ReassessmentBooking:
+      type: object
+      required: [id, personId, capabilityId, status]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        assessorId:
+          type: string
+        scheduledFor:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [requested, scheduled, completed, cancelled, no_capacity]
+        requestedBy:
+          type: string
+          enum: [self_service, team_leader, scheduler, automatic]
+        daysFromLapse:
+          type: integer
+        serviceTargetDays:
+          type: integer
+    ReassessmentBookingCreate:
+      type: object
+      required: [personId, capabilityId]
+      properties:
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        preferredWindowStart:
+          type: string
+          format: date
+        preferredWindowEnd:
+          type: string
+          format: date
+        requestedBy:
+          type: string
+          enum: [self_service, team_leader, scheduler, automatic]
+    RosterDemand:
+      type: object
+      required: [id, location, capabilityId, date]
+      properties:
+        id:
+          type: string
+        location:
+          type: string
+        capabilityId:
+          type: string
+        date:
+          type: string
+          format: date
+        shiftsRequired:
+          type: integer
+        shiftType:
+          type: string
+          enum: [day, night, standby, callout]
+        sourceSystem:
+          type: string
+    DeployabilityForecast:
+      type: object
+      required: [location, fromDate, toDate, lines]
+      properties:
+        location:
+          type: string
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        claimedCapabilityHeadcount:
+          type: integer
+          description: People recorded as holding the capability at any time
+        deployableCapabilityHeadcount:
+          type: integer
+          description: People whose currency is live on the date in question
+        lines:
+          type: array
+          items:
+            type: object
+            required: [capabilityId, date]
+            properties:
+              capabilityId:
+                type: string
+              date:
+                type: string
+                format: date
+              shiftsRequired:
+                type: integer
+              shiftsFillable:
+                type: integer
+              shiftsUnfillable:
+                type: integer
+              agencyCoverAssumed:
+                type: integer
+              activeOverrides:
+                type: integer
+    UnlockRanking:
+      type: object
+      properties:
+        location:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              personId:
+                type: string
+              capabilityId:
+                type: string
+              shiftsUnlocked:
+                type: integer
+              assessorHoursRequired:
+                type: number
+                format: float
+              shiftsUnlockedPerAssessorHour:
+                type: number
+                format: float
+    HelpRequest:
+      type: object
+      required: [id, question, resolutionMode]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        question:
+          type: string
+        askedAt:
+          type: string
+          format: date-time
+        atAssetReference:
+          type: string
+        resolutionMode:
+          type: string
+          enum: [micro_answer, macro_programme_route, escalated_to_expert, unresolved]
+        timeToAnswerSeconds:
+          type: integer
+        servedAssetIds:
+          type: array
+          items:
+            type: string
+        ratedUseful:
+          type: boolean
+        suspectedProcessDefect:
+          type: boolean
+    HelpRequestCreate:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+        capabilityId:
+          type: string
+        atAssetReference:
+          type: string
+        context:
+          type: string
+          enum: [at_asset, in_vehicle, at_depot, off_shift]
+    RecurringHelpTopic:
+      type: object
+      properties:
+        topic:
+          type: string
+        capabilityId:
+          type: string
+        occurrences:
+          type: integer
+        distinctAskers:
+          type: integer
+        teams:
+          type: array
+          items:
+            type: string
+        interpretation:
+          type: string
+          enum: [knowledge_gap, process_defect, tooling_defect, documentation_defect, unclear]
+        escalatedTo:
+          type: string
+    LearningAsset:
+      type: object
+      required: [id, title, pace]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        pace:
+          type: string
+          enum: [micro, macro]
+        targetDurationSeconds:
+          type: integer
+          description: Micro assets target the source's two-minute format
+        format:
+          type: string
+          enum: [video, text, checklist, simulation, classroom, coached_practice]
+        proficiencyStages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProficiencyStage"
+        capabilityIds:
+          type: array
+          items:
+            type: string
+        usefulnessRating:
+          type: number
+          format: float
+        authorAuthority:
+          type: string
+    CapabilityProgramme:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        capabilityId:
+          type: string
+        entryRoutes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryRoute"
+        targetTimeToProficiencyDays:
+          type: integer
+        assetIds:
+          type: array
+          items:
+            type: string
+        costPerLearner:
+          $ref: "#/components/schemas/Money"
+    ProficiencyJourney:
+      type: object
+      required: [id, personId, capabilityId, entryRoute]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        entryRoute:
+          $ref: "#/components/schemas/EntryRoute"
+        startedAt:
+          type: string
+          format: date-time
+        independentAt:
+          type: string
+          format: date-time
+        timeToProficiencyDays:
+          type: integer
+        targetTimeToProficiencyDays:
+          type: integer
+        currentStage:
+          $ref: "#/components/schemas/ProficiencyStage"
+        programmeId:
+          type: string
+        microAssetsConsumed:
+          type: integer
+        macroHoursConsumed:
+          type: number
+          format: float
+    CompensatingControl:
+      type: object
+      required: [controlType]
+      properties:
+        controlType:
+          type: string
+          enum: [direct_supervision, buddy_working, scope_restriction, additional_briefing, third_party_verification, work_deferral]
+        description:
+          type: string
+        responsiblePerson:
+          type: string
+    DeploymentOverride:
+      type: object
+      required: [id, personId, capabilityId, status, authorisedBy, expiresAt]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, closed, escalated]
+        reason:
+          type: string
+        authorisedBy:
+          type: string
+          description: Named accountable manager carrying personal liability
+        authorisedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        compensatingControls:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensatingControl"
+        riskRegisterReference:
+          type: string
+        closureReason:
+          type: string
+    DeploymentOverrideCreate:
+      type: object
+      required: [personId, capabilityId, reason, expiresAt, compensatingControls]
+      properties:
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        reason:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        compensatingControls:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CompensatingControl"
+        workOrderReference:
+          type: string
+    ContractorAttestation:
+      type: object
+      required: [id, contractorPersonId, capabilityId, verificationStatus]
+      properties:
+        id:
+          type: string
+        contractorPersonId:
+          type: string
+        supplierId:
+          type: string
+        capabilityId:
+          type: string
+        attestedCurrencyExpiry:
+          type: string
+          format: date
+        evidenceReference:
+          type: string
+        issuingBody:
+          type: string
+        verificationStatus:
+          type: string
+          enum: [submitted, verified, rejected, expired]
+        verifiedAt:
+          type: string
+          format: date-time
+        verifiedAgainst:
+          type: string
+        parityStandardApplied:
+          type: boolean
+          description: Confirms the same evidential standard as employee capability
+        directionAndControlDisclaimer:
+          type: string
+          description: Records that verification does not extend to directing the supplier's worker
+    ContractorAttestationCreate:
+      type: object
+      required: [contractorPersonId, supplierId, capabilityId, attestedCurrencyExpiry, evidenceReference]
+      properties:
+        contractorPersonId:
+          type: string
+        supplierId:
+          type: string
+        capabilityId:
+          type: string
+        attestedCurrencyExpiry:
+          type: string
+          format: date
+        evidenceReference:
+          type: string
+        issuingBody:
+          type: string
+    Determination:
+      type: object
+      required: [id, personId, capabilityId, outcome, servedAt]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        outcome:
+          type: string
+          enum: [currency_lapsed, suspended, not_yet_competent, authorisation_withdrawn]
+        servedAt:
+          type: string
+          format: date-time
+        decidedBy:
+          type: string
+          description: Named accountable decision-maker, never a model
+        decayBasisVersion:
+          type: integer
+        evidenceRelidOn:
+          type: array
+          items:
+            type: string
+          description: Practice evidence and assessment identifiers cited in the written reasons
+        writtenReasons:
+          type: string
+        workRestrictionApplied:
+          type: string
+        payOrRosterImpact:
+          type: boolean
+        appealWindowClosesAt:
+          type: string
+          format: date-time
+        appealId:
+          type: string
+    Appeal:
+      type: object
+      required: [id, determinationId, status]
+      properties:
+        id:
+          type: string
+        determinationId:
+          type: string
+        raisedBy:
+          type: string
+        raisedAt:
+          type: string
+          format: date-time
+        grounds:
+          type: string
+          enum: [practice_not_captured, evidence_misattributed, standard_misapplied, decay_basis_disputed, procedural]
+        submittedEvidence:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [open, under_review, decided, withdrawn, out_of_time]
+        decisionDeadline:
+          type: string
+          format: date-time
+        reviewerIndependentOfOriginalDecision:
+          type: boolean
+        outcome:
+          type: string
+          enum: [upheld, rejected, partially_upheld, remitted_for_reassessment]
+        rationale:
+          type: string
+    AppealCreate:
+      type: object
+      required: [grounds]
+      properties:
+        grounds:
+          type: string
+          enum: [practice_not_captured, evidence_misattributed, standard_misapplied, decay_basis_disputed, procedural]
+        statement:
+          type: string
+        submittedEvidence:
+          type: array
+          items:
+            type: string
+    AdverseImpactReview:
+      type: object
+      required: [id, period, status]
+      properties:
+        id:
+          type: string
+        period:
+          type: string
+        scope:
+          type: string
+          enum: [assessment_outcomes, currency_lapse_rates, override_allocation, all]
+        status:
+          type: string
+          enum: [draft, published, remediation_open, closed]
+        disparities:
+          type: array
+          items:
+            type: object
+            properties:
+              dimension:
+                type: string
+                enum: [age, sex, disability, race_or_ethnicity, working_pattern, leave_history, contract_type]
+              groupLabel:
+                type: string
+              rate:
+                type: number
+                format: float
+              referenceRate:
+                type: number
+                format: float
+              disparityRatio:
+                type: number
+                format: float
+              statisticallySignificant:
+                type: boolean
+        justification:
+          type: string
+        remediationActions:
+          type: array
+          items:
+            type: string
+        reportedTo:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+    AdverseImpactReviewCreate:
+      type: object
+      required: [period, scope]
+      properties:
+        period:
+          type: string
+        scope:
+          type: string
+          enum: [assessment_outcomes, currency_lapse_rates, override_allocation, all]
+        remediationActions:
+          type: array
+          items:
+            type: string
+        reportedTo:
+          type: string
+    ConsultationRecord:
+      type: object
+      required: [id, subject, status]
+      properties:
+        id:
+          type: string
+        subject:
+          type: string
+          enum: [decay_basis_change, assessment_standard_change, deployment_rule_change, override_policy_change]
+        subjectReference:
+          type: string
+          description: The rule version this consultation approved
+        bodyConsulted:
+          type: string
+          enum: [trade_union, works_council, employee_forum, safety_committee]
+        openedAt:
+          type: string
+          format: date-time
+        concludedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [open, concluded_agreed, concluded_disagreed, not_required]
+        representations:
+          type: string
+        outcomeNote:
+          type: string
+    ConsultationRecordCreate:
+      type: object
+      required: [subject, bodyConsulted]
+      properties:
+        subject:
+          type: string
+          enum: [decay_basis_change, assessment_standard_change, deployment_rule_change, override_policy_change]
+        subjectReference:
+          type: string
+        bodyConsulted:
+          type: string
+          enum: [trade_union, works_council, employee_forum, safety_committee]
+        representations:
+          type: string
+        status:
+          type: string
+          enum: [open, concluded_agreed, concluded_disagreed, not_required]
+    EvidencePack:
+      type: object
+      required: [id, personId, purpose]
+      properties:
+        id:
+          type: string
+        personId:
+          type: string
+        capabilityId:
+          type: string
+        determinationId:
+          type: string
+        purpose:
+          type: string
+          enum: [regulator_request, tribunal, incident_investigation, internal_audit]
+        asOfDate:
+          type: string
+          format: date
+        includedHoldings:
+          type: array
+          items:
+            type: string
+        includedAssessments:
+          type: array
+          items:
+            type: string
+        includedEvidence:
+          type: array
+          items:
+            type: string
+        includedOverrides:
+          type: array
+          items:
+            type: string
+        decayBasisVersionInForce:
+          type: integer
+        assembledBy:
+          type: string
+        assembledAt:
+          type: string
+          format: date-time
+    PortableCapabilityRecord:
+      type: object
+      required: [personId, issuedAt]
+      properties:
+        personId:
+          type: string
+        issuedAt:
+          type: string
+          format: date-time
+        issuedReason:
+          type: string
+          enum: [exit, internal_transfer, individual_request]
+        capabilities:
+          type: array
+          items:
+            type: object
+            properties:
+              capabilityCode:
+                type: string
+              capabilityName:
+                type: string
+              standardStatement:
+                type: string
+              lastAssessedAt:
+                type: string
+                format: date-time
+              currencyExpiryAtIssue:
+                type: string
+                format: date
+              qualifyingPracticeCount:
+                type: integer
+              awardingBody:
+                type: string
+        verificationUrl:
+          type: string
+          format: uri
+        observationNotesExcluded:
+          type: boolean
+          description: Assessor free-text withheld so the record is verifiable without exposing judgemental third-party content
+    DataEnvelopeCapabilityDefinition:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/CapabilityDefinition"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeDecayBasis:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/DecayBasis"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeCapabilityHolding:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/CapabilityHolding"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopePracticeEvidence:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/PracticeEvidence"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeAssessment:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/Assessment"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeReassessmentBooking:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ReassessmentBooking"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeDeployabilityForecast:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/DeployabilityForecast"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeUnlockRanking:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/UnlockRanking"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeHelpRequest:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/HelpRequest"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeDeploymentOverride:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/DeploymentOverride"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeContractorAttestation:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ContractorAttestation"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeDetermination:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/Determination"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeAppeal:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/Appeal"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeAdverseImpactReview:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/AdverseImpactReview"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeConsultationRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ConsultationRecord"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeEvidencePack:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/EvidencePack"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopePortableCapabilityRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/PortableCapabilityRecord"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeCapabilityDefinition:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CapabilityDefinition"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeDecayBasis:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/DecayBasis"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeCapabilityHolding:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CapabilityHolding"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeCurrencyAlert:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CurrencyAlert"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopePracticeEvidence:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/PracticeEvidence"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeAssessment:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Assessment"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeAssessmentTask:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AssessmentTask"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeReassessmentBooking:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReassessmentBooking"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeRosterDemand:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/RosterDemand"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeRecurringHelpTopic:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/RecurringHelpTopic"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeLearningAsset:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/LearningAsset"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeProficiencyJourney:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProficiencyJourney"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeDeploymentOverride:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/DeploymentOverride"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeContractorAttestation:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContractorAttestation"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeAdverseImpactReview:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdverseImpactReview"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeConsultationRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ConsultationRecord"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
